@@ -76,9 +76,10 @@ const reducer = (state, action) => {
     case OPEN_CELL: {
       const tableData = [...state.tableData];
       tableData.forEach((row, i) => {
-        tableData[i] = [...state.tableData[i]];
+        tableData[i] = [...row];
       });
-      tableData[action.row][action.cell] = CODE.OPENED; //
+      // tableData[action.row][action.cell] = CODE.OPENED;
+      const checked = [];
       const checkAround = (row, cell) => {
         if (
           [
@@ -89,8 +90,22 @@ const reducer = (state, action) => {
             CODE.QUESTION,
           ].includes(tableData[row][cell])
         ) {
+          return;
         }
-        let around = [];
+        if (
+          row < 0 ||
+          row > tableData.length ||
+          cell < 0 ||
+          cell > tableData[0].length
+        ) {
+          return;
+        }
+        if (checked.includes(row + "," + cell)) {
+          return;
+        } else {
+          checked.push(row + "," + cell);
+        }
+        let around = [tableData[row][cell - 1], tableData[row][cell + 1]];
         if (tableData[action.row - 1]) {
           around = around.concat(
             tableData[row - 1][cell - 1],
@@ -98,10 +113,10 @@ const reducer = (state, action) => {
             tableData[row - 1][cell + 1]
           );
         }
-        around = around.concat(
-          tableData[row][cell - 1],
-          tableData[row][cell + 1]
-        );
+        // around = around.concat(
+        //   tableData[row][cell - 1],
+        //   tableData[row][cell + 1]
+        // );
         if (tableData[row + 1]) {
           around = around.concat(
             tableData[row + 1][cell - 1],
@@ -127,12 +142,11 @@ const reducer = (state, action) => {
             near.push([row + 1, cell]);
             near.push([row + 1, cell + 1]);
           }
-          near
-            .filter((v) => !!v)
-            .forEach((n) => {
+          near.forEach((n) => {
+            if (tableData[n[0]][n[1]] !== CODE.OPENED) {
               checkAround(n[0], n[1]);
-            });
-        } else {
+            }
+          });
         }
       };
       checkAround(action.row, action.cell);
