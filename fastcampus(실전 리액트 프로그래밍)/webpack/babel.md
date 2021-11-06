@@ -114,3 +114,91 @@ module.exports = {
     npx webpack
 
 <img src="./img/bunddle.png" width="70%" />
+
+### @babel/core를 직접 이용하기
+
+이전에 살펴봤던 @babel/cli와 babel-loader 모두 @babel/core를 이용해서 바벨을 실행한다.
+
+먼저 프로젝트 루트에 runBabel.js 파일을 만든다.
+
+```js
+const babel = require("@babel/core"); // 1
+const fs = require("fs");
+
+const filename = "./src/code.js";
+const source = fs.readFileSync(filename, "utf8"); // 2
+const presets = ["@babel/preset-react"]; // 3
+const plugins = [
+  // 3
+  "@babel/plugin-transform-template-literals",
+  "@babel/plugin-transform-arrow-functions",
+];
+const { code } = babel.transformSync(source, {
+  // 4
+  filename,
+  presets,
+  plugins,
+  configFile: false, // 5
+});
+console.log(code); // 6
+```
+
+1 @babel/core 모듈을 가져온다.  
+2 컴파일할 파일의 내용을 가져온다.  
+3 바벨 플러그인과 프리셋을 설정한다.  
+4 transformSync 함수를 호출해서 바벨을 실행한다.  
+5 babel.config.js 설정 파일을 사용하지 않도록 한다.  
+6 변환된 코드를 콘솔에 출력한다. 파일로 저장하기를 원한다면 fs 모듈을 이용하면 된다.
+
+    node runBabel.js
+
+@babel/core 모듈을 직접 사용하는 방식은 자유도가 높다는 장점이 있다. 같은 코드에 대해 다음과 같이 두가지 설정을 적용한다고 생각해보자
+
+```js
+// 설정 1
+const presets = ["@babel/preset-react"];
+const plugins = ["@babel/plugin-transform-template-literals"];
+
+// 설정 2
+const presets = ["@babel/preset-react"];
+const plugins = ["@babel/plugin-transform-arrow-functions"];
+```
+
+@babel/cli 또는 babel-loader를 이용한다면 바벨을 두 번 실행해야 한다. @babel/core를 사용하면 바벨을 좀 더 효율적으로 실행할 수 있다. 바벨은 컴파일시 다음 세 단계를 거친다.
+
+- 파싱(parse) 단계: 입력된 코드로부터 AST(abstract syntax tree)를 생성한다.
+- 변환(transform) 단계: AST를 원하는 형태로 변환한다.
+- 생성(generate) 단계: AST를 코드로 출력한다.
+
+AST는 코드의 구문(syntax)이 분석된 결과를 담고 있는 구조체다. 코드가 같다면 AST도 같기 때문에 같은 코드에 대해서 하나의 AST를 만들어 놓고 재사용할 수 있다.
+
+프로젝트 루트에 runBabel2.js 파일을 만들고, 다음 코드를 입력해보자
+
+```js
+const babel = require("@babel/core");
+const fs = require("fs");
+
+const filename = "./src/code.js";
+const source = fs.readFileSync(filename, "utf8");
+const presets = ["@babel/preset-react"];
+
+const { ast } = babel.transformSync(source, {
+  filename,
+  ast: true,
+  code: false,
+  presets,
+  configFile: false,
+});
+
+const plugins = [
+  "@babel/plugin-transform-template-literals",
+  "@babel/plugin-transform-arrow-functions",
+];
+const { code } = babel.transformSync(source, {
+  filename,
+  presets,
+  plugins,
+  configFile: false,
+});
+console.log(code);
+```
