@@ -183,6 +183,7 @@ const source = fs.readFileSync(filename, "utf8");
 const presets = ["@babel/preset-react"];
 
 const { ast } = babel.transformSync(source, {
+  // 1
   filename,
   ast: true,
   code: false,
@@ -190,15 +191,22 @@ const { ast } = babel.transformSync(source, {
   configFile: false,
 });
 
-const plugins = [
-  "@babel/plugin-transform-template-literals",
-  "@babel/plugin-transform-arrow-functions",
-];
-const { code } = babel.transformSync(source, {
+const { code: code1 } = babel.transformFromAstSync(ast, source, {
+  // 2
   filename,
-  presets,
-  plugins,
+  plugins: ["@babel/plugin-transform-template-literals"],
   configFile: false,
 });
-console.log(code);
+const { code: code2 } = babel.transformFromAstSync(ast, source, {
+  // 3
+  filename,
+  plugins: ["@babel/plugin-transform-arrow-functions"],
+  configFile: false,
+});
+console.log("code1:\n", code1);
+console.log("code2:\n", code2);
 ```
+
+1 코드는 생성하지 않고 AST만 생성한다. 프리셋은 두 가지 설정 모두 같으므로 AST를 만들 때 해당 프리셋을 미리 적용한다.  
+2 이렇게 만들어진 AST로부터 첫 번째 설정의 플러그인이 반영된 코드를 생성한다.  
+3 마찬가지로 두 번째 설정이 적용된 코드를 생성한다. 설정의 개수가 많아질수록 이 방식의 효율은 높아진다.
